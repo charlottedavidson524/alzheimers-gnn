@@ -1,0 +1,21 @@
+# Data (never commit)
+data/
+results/
+*.nii
+*.nii.gz
+*.edf
+*.set
+*.fdt
+
+# Python
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+*.egg-info/
+.pytest_cache/
+
+# Env
+.env
+
+# OS/editor
+.DS_Store
