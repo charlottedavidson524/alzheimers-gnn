@@ -1,0 +1,50 @@
+# Setting default parameters
+# Reproducibility
+seed: 42
+
+# Paths
+paths:
+  data_root: "C:/data/pearl-neuro" # Raw BIDS dataset. Outside the repo.
+  interim: "data/interim" # Stores cached preprocessed EEG/fMRI (inside repo, gitignored)
+  processed: "data/processed" # Connectivity matrices, PyG graph objects
+  results: "results" # Figures, saved models, metrics
+
+# Dataset
+dataset:
+  openneuro_id: "ds004796" # The ID on OpenNeuro
+  version: "1.1.0"
+  target: "apoe_e4_carrier" # RQ1: carrier vs non-carrier
+  neuroimaging_subset_n: 79
+
+# EEG preprocessing (MNE)
+eeg:
+  sfreq_resample: 250 # Downsample (from the recorded 1000 Hz)
+  l_freq: 1.0 # High-pass
+  h_freq: 45.0 # Low-pass (stays below mains noise)
+  notch: 50 # Poland has 50 Hz mains
+  bands:
+    delta: [1, 4]
+    theta: [4, 8]
+    alpha: [8, 13]
+    beta: [13, 30]
+    gamma: [30, 45]
+
+# Graph construction
+graph:
+  connectivity: "coherence" # EEG coherence -> edge weights
+  threshold: 0.3 # Edge sparsification cutoff
+
+# Cross-validation
+cv:
+  n_splits: 5
+  stratified: true
+
+# Model
+model:
+  type: "GCN"
+  hidden_dim: 64
+  num_layers: 2
+  dropout: 0.5
+  lr: 0.001
+  weight_decay: 0.0005
+  epochs: 200
