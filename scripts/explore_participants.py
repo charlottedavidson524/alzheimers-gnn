@@ -135,3 +135,59 @@ if apoe_col is None:
     show("")
     show("No APOE column found. Check df.columns and update this script.")
 
+# ──────────────────────────────────────────────────────────────────────
+# APOE e4 carrier status (target variable)
+
+# Carrier" have minimum one e4 allele (so the genotype string contains a 
+# 4, e.g. 'E3/E4', 'e3e4', '34').
+# ──────────────────────────────────────────────────────────────────────
+if apoe_col is not None:
+    show("")
+    show("=" * 70)
+    show("APOE: FULL SAMPLE")
+    show("=" * 70)
+    show("Raw genotype counts:")
+    show(df[apoe_col].value_counts(dropna=False).to_string())
+
+    # Build carrier flag (lowercase genotype and check for 4)
+    apoe_text = df[apoe_col].astype(str).str.lower()
+    df["apoe_e4_carrier"] = apoe_text.str.contains("4")
+
+    n_carriers = df["apoe_e4_carrier"].sum()
+    n_non_carriers = (~df["apoe_e4_carrier"]).sum()
+    total = len(df)
+
+    pct_carriers = 100 * n_carriers / total
+ 
+    show("")
+    show(f" e4 carriers: {n_carriers}  ({pct_carriers:.1f}%)")
+    show(f" e4 non-carriers: {n_non_carriers}  ({100 - pct_carriers:.1f}%)")
+
+# ──────────────────────────────────────────────────────────────────────
+# PICALM rs3851179 genotype
+# ──────────────────────────────────────────────────────────────────────
+if picalm_col is not None:
+    show("")
+    show("=" * 70)
+    show("PICALM rs3851179: FULL SAMPLE")
+    show("=" * 70)
+    show("Genotype counts:")
+    show(df[picalm_col].value_counts(dropna=False).to_string())
+
+# ──────────────────────────────────────────────────────────────────────
+# APOE and PICALM cross-tabulation
+# ──────────────────────────────────────────────────────────────────────
+if apoe_col is not None and picalm_col is not None:
+    show("")
+    show("=" * 70)
+    show("APOE e4 AND PICALM rs3851179 CROSS-TAB")
+    show("=" * 70)
+ 
+    # Map True/False to readable labels for the table.
+    carrier_label = df["apoe_e4_carrier"].map({True: "e4 carrier", False: "non-carrier"})
+    crosstab = pd.crosstab(carrier_label, df[picalm_col], margins=True, dropna=False)
+    show(crosstab.to_string())
+
+
+
+
