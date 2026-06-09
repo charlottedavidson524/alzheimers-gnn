@@ -3,8 +3,8 @@ Some notes from the first inspection of participants.tsv.
 Confirmed data structure:
 
 - 192 participants x 87 columns, as in the paper (Dzianok & Kublik, 2024).
-- All expected variables were present: genertics (APOE*rs429358, APOE_rs7412, APOE_haplotype,
-  PICALM_rs3851179), demographics (age, sex, education, BMI), health/lifestyle (smoking, coffee, allergies, hypertension, diabetes, thyroid disease, ibuprofen intake, dementia history, learning deficits), psychometrics (BDI (depression), SES (stress), RPM (intelligence), EHI (handedness), NEO*\* (personality factors), AUDIT (alcohol use), MINI-COPE_1..14 (coping), CVLT_1..13 (verbal learning/memory)), blood (full CBC (leukocytes, erythrocytes, hemoglobin, hematocrit, MCV, MCH, MCHC, RDW-CV, platelets, PDW, MPV, P-LCR, differential counts and percentages); lipid panel (total/HDL/non-HDL/LDL cholesterol, triglycerides); HSV_r (herpes simplex antibody))
+- All expected variables were present: genertics (APOE_rs429358, APOE_rs7412, APOE_haplotype,
+  PICALM_rs3851179), demographics (age, sex, education, BMI), health/lifestyle (smoking, coffee, allergies, hypertension, diabetes, thyroid disease, ibuprofen intake, dementia history, learning deficits), psychometrics (BDI (depression), SES (stress), RPM (intelligence), EHI (handedness), NEO (personality factors), AUDIT (alcohol use), MINI-COPE_1..14 (coping), CVLT_1..13 (verbal learning/memory)), blood (full CBC (leukocytes, erythrocytes, hemoglobin, hematocrit, MCV, MCH, MCHC, RDW-CV, platelets, PDW, MPV, P-LCR, differential counts and percentages); lipid panel (total/HDL/non-HDL/LDL cholesterol, triglycerides); HSV_r (herpes simplex antibody))
 
 Column names used:
 
