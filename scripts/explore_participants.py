@@ -188,6 +188,150 @@ if apoe_col is not None and picalm_col is not None:
     crosstab = pd.crosstab(carrier_label, df[picalm_col], margins=True, dropna=False)
     show(crosstab.to_string())
 
+# ──────────────────────────────────────────────────────────────────────
+# Neuroimaging subset (the participants who had EEG/fMRI scans)
+# ──────────────────────────────────────────────────────────────────────
+show("")
+show("=" * 70)
+show("NEUROIMAGING SUBSET")
+show("=" * 70)
+
+# Try to find a column which indicates who has EEG/fMRI
+neuro_mask = None
+
+if eeg_col is not None:
+    flag = df[eeg_col].astype(str).str.lower()
+    neuro_mask = flag.isin(["yes", "true", "1", "y"])
+    show(f"Using column '{eeg_col}' to flag participants who took part in neuroimaging (EEG)")
+elif fmri_col is not None:
+    flag = df[fmri_col].astype(str).str.lower()
+    neuro_mask = flag.isin(["yes", "true", "1", "y"])
+    show(f"Using column '{fmri_col}' to flag participants who took part in neuroimaging (fMRI)")
+else:
+    show("No EEG/fMRI flag column found in participants.tsv")
+    show("The 79-subject subset will need to be identified from on-disk")
+    show("files later (after Stage 3 of the download).")
+
+if neuro_mask is not None and apoe_col is not None:
+    n_neuro = neuro_mask.sum()
+    neuro_df = df[neuro_mask]
+
+    # Work out proportions of apoe carriers vs non carriers from the neuroimaging subset
+    n_neuro_carriers = neuro_df["apoe_e4_carrier"].sum()
+    n_neuro_non = (~neuro_df["apoe_e4_carrier"]).sum()
+    pct_neuro_carriers = (n_neuro_carriers/n_neuro) * 100
+
+    show("")
+    show(f"Neuroimaging subset size: {n_neuro}")
+    show("APOE e4 status within the neuroimaging subset:")
+    show(f"e4 carriers: {n_neuro_carriers} ({pct_neuro_carriers:.1f}%)")
+    show(f"e4 non-carriers: {n_neuro_non} ({100 - pct_neuro_carriers:.1f}%)")
+
+# ──────────────────────────────────────────────────────────────────────
+# Missing data
+# ──────────────────────────────────────────────────────────────────────
+show("")
+show("=" * 70)
+show("MISSING DATA SUMMARY")
+show("")
+
+missing_per_column = df.isna().sum()
+missing_per_column = missing_per_column[missing_per_column > 0]
+missing_per_column = missing_per_column.sort_values(ascending=False)
+
+if len(missing_per_column) == 0:
+    show("No missing values in any column")
+else:
+    show(f"{len(missing_per_column)} columns have missing values.")
+    show("Top 20:")
+    show(missing_per_column.head(20).to_string())
+
+# ──────────────────────────────────────────────────────────────────────
+# Demographic summary
+# ──────────────────────────────────────────────────────────────────────
+if age_col is not None or sex_col is not None:
+    show("")
+    show("=" * 70)
+    show("DEMOGRAPHIC SUMMARY")
+    show("")
+
+    if age_col is not None:
+        show(f"Age: {age_col}")
+        show(df[age_col].describe().to_string())
+        show("")
+
+    if sex_col is not None:
+        show(f"Sex ({sex_col}):")
+        show(df[sex_col].value_counts(dropna=False).to_string())
+
+# ──────────────────────────────────────────────────────────────────────
+# Histograms by APOE e4 status 
+#
+# There are two overlaid histograms for every numerical column.
+# One is for carriers and one is for non-carriers.
+# ──────────────────────────────────────────────────────────────────────
+if apoe_col is not None:
+    show("")
+    show("=" * 70)
+    show("NUMERIC DISTRIBUTIONS BY APOE e4 STATUS")
+    show("=" * 70)
+ 
+    # Get numeric columns. Exclude anything that looks like an ID.
+    numeric_columns = []
+    for col in df.columns:
+        if pd.api.types.is_numeric_dtype(df[col]):
+            if "id" not in col.lower():
+                numeric_columns.append(col)
+ 
+    show(f"Plotting {len(numeric_columns)} numeric columns.")
+ 
+    if len(numeric_columns) > 0:
+        # Lay out the plots in a grid (4 columns wide)
+        plots_per_row = 4
+        n_plots = len(numeric_columns)
+        n_rows = (n_plots + plots_per_row - 1) // plots_per_row
+ 
+        fig, axes = plt.subplots(n_rows, plots_per_row, figsize=(plots_per_row * 3, n_rows * 2.2))
+        # Flatten 2D axes array into 1D list for easy iteration.
+        axes = axes.flatten()
+ 
+        for i, col in enumerate(numeric_columns):
+            ax = axes[i]
+            carrier_values = df.loc[df["apoe_e4_carrier"], col].dropna()
+            non_carrier_values = df.loc[~df["apoe_e4_carrier"], col].dropna()
+ 
+            ax.hist(non_carrier_values, bins=15, alpha=0.5, label="non-carrier", density=True)
+            ax.hist(carrier_values, bins=15, alpha=0.5, label="e4 carrier", density=True)
+            ax.set_title(col, fontsize=8)
+            ax.tick_params(labelsize=7)
+ 
+        # Hide any unused subplots in the bottom-right of the grid.
+        for j in range(n_plots, len(axes)):
+            axes[j].set_visible(False)
+ 
+        axes[0].legend(fontsize=7)
+        fig.suptitle("Numeric variable distributions by APOE e4 status", fontsize=10)
+        fig.tight_layout()
+ 
+        plot_path = results_dir / "distributions_by_apoe.png"
+        fig.savefig(plot_path, dpi=120, bbox_inches="tight")
+        plt.close(fig)
+ 
+        show(f"Saved plot: {plot_path}")
+
+# ──────────────────────────────────────────────────────────────────────
+# Save the text summary
+# ──────────────────────────────────────────────────────────────────────
+summary_path = results_dir / "summary.txt"
+summary_text = "\n".join(log_lines)
+summary_path.write_text(summary_text, encoding="utf-8")
+ 
+print("")
+print(f"Text summary saved to: {summary_path}")
+
+
+
+
 
 
 
