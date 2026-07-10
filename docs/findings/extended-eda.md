@@ -47,6 +47,64 @@ Feature screening. Comparing full sample and modelling cohort.
 
 The two rankings are quite different. For the full sample there are no biological variables that particularly stand out. The top signals are all modest inflammatory markers with FDR-corrected p-values above 0.7. For the modelling cohort there are psychometric patterns.
 
-Feature screening:
+n=192 top signals
 
-The ranmings of features between the two groups differ significantly.
+| Variable                  | Cohen's d | FDR p |
+| ------------------------- | --------- | ----- |
+| eosinophils\_%            | 0.51      | 0.71  |
+| eosinophils               | 0.48      | 0.71  |
+| MCH                       | 0.37      | 0.99  |
+| MCHC                      | 0.36      | 0.99  |
+| smoking_status            | 0.34      | 0.71  |
+| MINI-COPE_8               | -0.34     | 0.71  |
+| dementia_history_patients | 0.34      | 0.71  |
+| EHI (handedness)          | 0.31      | 0.71  |
+
+n=79 top signals
+
+| Variable                    | Cohen's d | Raw p | FDR p |
+| --------------------------- | --------- | ----- | ----- |
+| eosinophils\_%              | 0.51      | 0.016 | 0.73  |
+| eosinophils                 | 0.48      | 0.024 | 0.73  |
+| BDI (depression)            | 0.48      | 0.030 | 0.73  |
+| NEO_NEU (neuroticism)       | 0.45      | 0.038 | 0.73  |
+| MINI-COPE_14                | 0.44      | 0.069 | 0.73  |
+| MINI-COPE_1                 | -0.40     | 0.093 | 0.73  |
+| CVLT_9                      | 0.40      | 0.070 | 0.73  |
+| dementia_history_parents    | 0.39      | 0.078 | 0.73  |
+| SES (stress)                | -0.39     | 0.093 | 0.73  |
+| MINI-COPE_13                | 0.39      | 0.086 | 0.73  |
+| MCH                         | 0.37      | 0.125 | 0.73  |
+| NEO_CON (conscientiousness) | -0.37     | 0.111 | 0.73  |
+| MCHC                        | 0.36      | 0.159 | 0.73  |
+| NEO_EXT (extraversion)      | -0.33     | 0.155 | 0.73  |
+| RPM (intelligence)          | -0.32     | 0.126 | 0.73  |
+| NEO_AGR (agreeableness)     | -0.29     | 0.200 | 0.74  |
+
+Nothing survives FDR correction in either of the analyses. Not too surprising given there are either a sample of only 78 tests or a presymptomatic sample. There is a pattern in the n=79 cohort that should be reported on though. Carriers in the n=79 cohort show:
+
+- Higher depression (BDI)
+- Higher neuroticism (NEO_NEU)
+- Lower self-esteem (SES)
+- Lower concientiousness (NEO_CON)
+- Lower agreeableness (NEO_AGR)
+- Lower extraversion (NEO_EXT)
+- Lower intelligence score (RPM)
+
+This is a somewhat clear psychometric profile. Check if there is literature associating APOE e4 with behavioural/personality differences in pre-symptomatic for AD propulations. Important notes on the findings above for the dissertation:
+
+- This is an exploratory finding only
+- The interpretation is important (no FDR-corrected variable survives; 78 tests; N=79)
+- Need to cite relevant literature when making this point
+
+The eosinophil count and percentage are the top biological feature in both runs.
+
+- Check the AD/inflammation literature
+
+Expected there to be lipid signals because of Xu et al. (2023) but this was absent. total_cholestrol and LDL_cholestrol don't appear in the top 20 of either group. Possible explanations could be|:
+
+- Power vs sample size. With n=48 vs n=31 in the modelling cohort, detecting an effect of d = 0.25 needs more power than we have (an 80%-power test at alpha = 0.05 for d = 0.25 needs roughly n = 250 per group).
+- The paper is reporting allele-count effects, not carrier-effects.
+- The nature of this specific population sample if that of a risk-enhanced Polish pre-symptomatic subgroup. This might not be reflected in a broader-population meta analysis like the one Xu et al. did.
+
+Be sure to acknowledge this surprising result.Also, the GNN/multimodal approach may find a lipid signal that the univariate screening doesn't pick up on.
