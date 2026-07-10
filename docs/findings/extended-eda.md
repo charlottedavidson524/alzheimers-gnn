@@ -146,3 +146,20 @@ Implications for baseline modelling. There is a lot of redundant information in 
 - Use a principle component of the affective cluster as a single feature.
 - Use only the strongest factors (BDI and NEO_NEU) and drop the other correlated features.
 - Use all of the raw features while using a regularised model like ridge or lasso that handles collinearity.
+
+CVLT internal structure:
+
+The CVLT block is clear in the n=79 heatmap (the observations below focus on this)
+
+- CVLT_1 to CVLT-8 form a strong immediate recall/short delay block (same in full sample)
+- CVLT-9 stays distinct.
+- CVLT_10 to CVLT_12 form a weaker delayed-recall block.
+- CVLT_13 has negative correlation with CVLT_1 to CVLT_8. Not as obvious in the full sample. CVLT_13 is potentially an intrusion or false-positive error count (more intrusions accompany lower correct recall which is to be expected).
+
+CVLT_1–8 measure correct recall across learning trials. CVLT_13 measures recognition false alarms so words the participant incorrectly claims were on the study list. Their negative correlation is in line with what might be expected. Participants with better encoding/recall have both higher correct recall and less false alarms. Confirms the CVLT scoring behaves sensibly in the modelling cohort.
+
+There is a modest positive correlation band between RPM (intelligence) and CVLT_1-8 in the modellingh cohort heatmap. Higher intelligence -> better verbal learning performance. To be expected but worth noting because it could have implications for modelling.
+
+The NEO personality factors are largely orthogonql in both of the samples. Only NEO_NEU ties strongly into the affective/personality cluster via SES and BDI. Other four factors show modest, mostly independent patterns.
+
+Summary of implications from the heatmaps:
