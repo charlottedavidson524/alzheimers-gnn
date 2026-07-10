@@ -168,3 +168,52 @@ Summary of implications from the heatmaps:
 - The collinearity seen in the affective cluster is important when creating the models for linear baselines.
 - RPM and CVLT_1-8 are somewhat redundant. They both measure similar cognitive factors. Need to keep this in mind when doing any interpretation.
 - Standard redundancies are there in the blood panel correlation structure (white-cell absolute/%, lipid interrelations, red-cell block).
+
+Confounder analysis:
+
+Chi-squared tests for categorical variables were used, along with t-tests for continuous variables. Comparing carriers and non-carriers.
+
+n=192 sample
+
+| Variable                 | Test   | p-value |
+| ------------------------ | ------ | ------- |
+| sex                      | chi2   | 0.778   |
+| education                | chi2   | 0.949   |
+| smoking_status           | chi2   | 0.115   |
+| coffee_status            | chi2   | 0.717   |
+| dementia_history_parents | chi2   | 0.063   |
+| learning_deficits        | chi2   | 0.403   |
+| hypertension             | chi2   | 0.496   |
+| diabetes                 | chi2   | 0.595   |
+| thyroid_diseases         | chi2   | 0.373   |
+| allergies                | chi2   | 1.000   |
+| BMI                      | t-test | 0.198   |
+| AUDIT                    | t-test | 0.638   |
+| age                      | t-test | 0.094   |
+
+n=79 sample
+
+| Variable                 | Test   | p-value |
+| ------------------------ | ------ | ------- |
+| sex                      | chi2   | 0.928   |
+| education                | chi2   | 0.614   |
+| smoking_status           | chi2   | 0.336   |
+| coffee_status            | chi2   | 0.465   |
+| dementia_history_parents | chi2   | 0.230   |
+| learning_deficits        | chi2   | 0.243   |
+| hypertension             | chi2   | 0.475   |
+| diabetes                 | chi2   | 1.000   |
+| thyroid_diseases         | chi2   | 0.316   |
+| allergies                | chi2   | 1.000   |
+| BMI                      | t-test | 0.321   |
+| AUDIT                    | t-test | 0.671   |
+| age                      | t-test | 0.218   |
+
+No confounder is significant in either sample. So, when baseline modelling, none of these need to be controlled as confounders. Including them as features is fine.
+
+Observations from the n=79 cohort:
+
+- Sex is p=0.93. Sex is not associated with carrier status.
+- Age is p=0.22. For the full sample p=0.09. Carriers and non-carriers are indistinguishable in age.
+- The question surrounding `allergies` has been resolved. In the n=79 group, `allergies` has only 6 missing values (compared to 119 in the full sample). So, missingness was a second_phase collection artefact. It's not a structural issue with missing data.
+- Chi-squared tests with small expected cell counts are flagged. These should be treated as indicative not definitive. A Fisher's exact test would be more appropriate but i's not likely to change the overall conclusion of no association.
