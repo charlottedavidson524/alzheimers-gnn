@@ -108,3 +108,41 @@ Expected there to be lipid signals because of Xu et al. (2023) but this was abse
 - The nature of this specific population sample if that of a risk-enhanced Polish pre-symptomatic subgroup. This might not be reflected in a broader-population meta analysis like the one Xu et al. did.
 
 Be sure to acknowledge this surprising result.Also, the GNN/multimodal approach may find a lipid signal that the univariate screening doesn't pick up on.
+
+Correlation structure:
+
+Correlation heatmaps for both the blood tests and the psychometric tests were generated for both the n=192 and n=79 groups. The PNGs can be found in `results/extended_exploration/` and `results/extended_exploration_second_phase/`.
+
+The correlation structure is very similar across both runs. Blood data is only available for `second_phase = 1` so both heatmaps are essentially describing the same people.
+
+Structure visible in both:
+
+- Red cell block: leukocytes, erythrocytes, hemoglobin and hematocrit are mutually correlated (the total cell counts covary)
+- Red cell size/content block: MCV, MCH, MCHC form a tight cluster (they all measure red-cell haemoglobin properties)
+- Platelet size block: PDW, MPV, P-LCR form a very strong correlated triangle (all measure platelet size/large-cell fraction).
+- Lipid panel block: total_cholestrol, non-HDL_cholestrol and LDL_cholestrol form a stromg redundant block.
+- White cell counts: absolute vs percentage show near-perfect diagonal correlations for the same cell types.
+
+Psychometric variables:
+
+The full-sample psychometric heatmap shows a strong CVLT block and some MINI-COPE structure but not much else. In the modelling cohort heatmap there are a few new patterns.
+
+Affective/personality cluster:
+
+A coherent block appears in the top-left corner spanning BDI, SES, NEO_NEU, and MINI-COPE_13 and MINI-COPE_14. Notable correlations include:
+
+- BDI and NEO_NEU: strong positive. Depression and neuroticism covary.
+- SES and NEO_EXT: strongly negative.
+- SES and NEO_CON: negative
+- MINI-COPE_14 and NEO_NEU: strongly positive
+- MINI-COPE_14 and SES: strongly negative
+- MINI-COPE_13 and BDI, NEO_NEU: positive
+- MINI-COPE_13 and NEO_CON, NEO_AGR: negative
+
+MINI-COPE_13 and MINI-COPE_14 measure X and Y. Their alignment with the depression/neuroticism/stress cluster is consistent in theory. High-negative-affect people might lean on maladaptive coping strategies. The visible cluster aligns with what was found in the feature screening. It is it's own correlation block rather than just group-mean differences.
+
+Implications for baseline modelling. There is a lot of redundant information in the affective/personality features. When creating the linear tabular baseline, using all seven would produce multicollinearity. Some options are:
+
+- Use a principle component of the affective cluster as a single feature.
+- Use only the strongest factors (BDI and NEO_NEU) and drop the other correlated features.
+- Use all of the raw features while using a regularised model like ridge or lasso that handles collinearity.
