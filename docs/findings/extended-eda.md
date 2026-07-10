@@ -163,3 +163,8 @@ There is a modest positive correlation band between RPM (intelligence) and CVLT_
 The NEO personality factors are largely orthogonql in both of the samples. Only NEO_NEU ties strongly into the affective/personality cluster via SES and BDI. Other four factors show modest, mostly independent patterns.
 
 Summary of implications from the heatmaps:
+
+- The affective/personality signiture is real rather than just a result of the feature ranking.
+- The collinearity seen in the affective cluster is important when creating the models for linear baselines.
+- RPM and CVLT_1-8 are somewhat redundant. They both measure similar cognitive factors. Need to keep this in mind when doing any interpretation.
+- Standard redundancies are there in the blood panel correlation structure (white-cell absolute/%, lipid interrelations, red-cell block).
