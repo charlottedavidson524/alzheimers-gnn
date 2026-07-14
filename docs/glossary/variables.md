@@ -182,7 +182,7 @@ These variables are all likely intrerelated. Not good for linear models but fine
 
 Infection marker:
 
-'HSV_r'
+- 'HSV_r': Binary indicator (0 = no, 1 = yes) of a positive IgG antibody result for herpes simplex virus (HSV). IgG indicates lifetime exposure (past or chronic infection) rather than active infection. HSV-1 and HSV-2 are not distinguished.
 
 Sources:
 

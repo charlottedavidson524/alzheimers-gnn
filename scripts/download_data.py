@@ -66,7 +66,7 @@ def download_one(rel_path: str, data_root: Path) -> str:
     tmp = out.with_suffix(out.suffix + ".tmp")
 
     if out.exists() and out.stat().st_size > 0:
-        print(f"  skip   {rel_path}")
+        print(f"skip {rel_path}")
         return "skipped"
 
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -75,35 +75,37 @@ def download_one(rel_path: str, data_root: Path) -> str:
         urllib.request.urlretrieve(url, tmp)
         tmp.rename(out)
         size_mb = out.stat().st_size / (1024 * 1024)
-        print(f"  ok     {rel_path}  ({size_mb:.1f} MB)")
+        print(f"ok {rel_path}  ({size_mb:.1f} MB)")
         return "ok"
 
     except urllib.error.HTTPError as e:
         if tmp.exists():
             tmp.unlink()
         if e.code == 404:
-            print(f"  404    {rel_path}  (not in public release)")
+            print(f"404 {rel_path} (not in public release)")
             return "missing"
-        print(f"  ERROR  {rel_path}  HTTP {e.code}")
+        print(f"ERROR  {rel_path}  HTTP {e.code}")
         return "error"
 
     except Exception as e:
         if tmp.exists():
             tmp.unlink()
-        print(f"  ERROR  {rel_path}  {type(e).__name__}: {e}")
+        print(f"ERROR {rel_path} {type(e).__name__}: {e}")
         return "error"
 
 # ──────────────────────────────────────────────────────────────────────
 # File-list builders for each stage
 # ──────────────────────────────────────────────────────────────────────
 def files_stage_1() -> list[str]:
-    """Top-level metadata only — tiny, run first to validate setup."""
+    """Top-level metadata only (tiny. run first to validate setup)."""
     return ["participants.tsv", "participants.json", "dataset_description.json", "README", "CHANGES"]
 
-
 def files_stage_2() -> list[str]:
-    """One subject's resting-state EEG (sub-01)."""
-    return [f"sub-01/eeg/sub-01_task-rest_eeg{ext}" for ext in EEG_EXTS]
+    """One subject's resting-state EEG + event descriptions (sub-01)."""
+    base = "sub-01/eeg/sub-01_task-rest_eeg"
+    files = [f"{base}{ext}" for ext in EEG_EXTS]
+    files.append("sub-01/eeg/sub-01_task-rest_events.tsv")
+    return files
 
 
 def files_stage_3() -> list[str]:
