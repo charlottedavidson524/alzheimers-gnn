@@ -158,6 +158,28 @@ def build_feature_matrix(df, variant):
     return df[columns].copy()
 
 # ──────────────────────────────────────────────────────────────────────
+# Impute any missing data (done after first iteration of log reg)
+# ──────────────────────────────────────────────────────────────────────
+
+def impute_missing(X):
+    """
+    Fill missing values with column median for numerical features and mode for categorical features.
+
+    First iteration of logistic regression should've been n=79 but had 10 missing values across 3
+    columns, which caused loss of 12% of the cohort. Impute as a result.
+    """
+    X = X.copy()
+    for col in X.columns:
+        if X[col].isna().any():
+            # Categorical columns (integer encoded with not many unique values) get the mode. Continuous get the median.
+            if X[col].nunique() <= 10:
+                fill_value = X[col].mode().iloc[0]
+            else:
+                fill_value = X[col].median()
+            X[col] = X[col].fillna(fill_value)
+    return X
+
+# ──────────────────────────────────────────────────────────────────────
 # Drop rows with any missing data
 # ──────────────────────────────────────────────────────────────────────
 
@@ -206,12 +228,13 @@ def load_baseline_data(variant="compact-light"):
     df = load_participants()
     df = filter_to_modelling_cohort(df)
     df = add_derived_features(df)
- 
+
     y = derive_apoe_e4_carrier(df)
     X = build_feature_matrix(df, variant)
- 
-    X, y = drop_missing(X, y)
+
+    X = impute_missing(X)         
+    X, y = drop_missing(X, y)     
     X = standardise(X)
- 
+
     feature_names = list(X.columns)
     return X.to_numpy(), y.to_numpy(), feature_names
