@@ -1,16 +1,21 @@
 """
-Train the feature-selected logistic regression baseline (tabular-light).
+Train the six tabular baseline variants. There are three types of models and two featutre-set variants.
 
-This runs the LR variant on the n=79 modelling cohort using the compact-light feature set. Saves per-fold and
-summary metrics.
+ ---------------------------- ----------------------------------------------------------------- ----------------------------------------------------
+|                            | tabular-light (n=79)                                            | tabular-full (n=76)                                |
+|----------------------------|-----------------------------------------------------------------|----------------------------------------------------|
+| Logistic (feature selected)| Selected features, no regularisation tuning                     | Selected features and 14-marker blood panels       |
+|----------------------------|-----------------------------------------------------------------|----------------------------------------------------|
+| Logistic (LASSO)           | All features, L1 penalty (feature selection via regularisation) | All features and full 28 blood markers, L1 penalty |
+|----------------------------|-----------------------------------------------------------------|----------------------------------------------------|
+| Random Forest              | All features, tree based, handles collinearity                  | All features and full 28-marker blood panel        |
+ ---------------------------- ----------------------------------------------------------------- ----------------------------------------------------
 
-Run it from the project root:
-    - python scripts/train_baselines.py
+Each combination is run through the same cross_validate() function so the metrics can be compared. Results are saved per
+variant and a comparison table is printed and saved.
 
-Future extensions:
-    - LASSO logistic regression (L1-penalised)
-    - Random forest
-    - Compact full variants (with blood panel, n=76)
+Run from project root:
+    - - python scripts/train_baselines.py
 """
 
 from pathlib import Path
