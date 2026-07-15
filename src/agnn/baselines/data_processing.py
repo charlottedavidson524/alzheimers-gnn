@@ -6,12 +6,18 @@ selection decisions that were documented in:
     - docs/decisions/feature_selection/blood-panel.md
     - docs/decisions/feature_selection/cvlt.md
     - docs/decisions/feature_selection/personality-cluster.md
+    - docs/decisions/missing-data-imputation.md
 
-There are two feature set variants that need to be supported:
+There are four feature set variants that need to be supported:
     - compact light: features selected, no blood markers (n=79 participants available)
     - compact full: compact features as well as the 12-marker blood panel (n=76 with blood data)
+    - all features light: all available features but no blood (n=79)
+    - all features full :  all available features and blood (n=76)
+
+Compact variants feed the logistic regression baselines while all feature variants feed LASSO and random forest
+baselines.
  
-Returns X, y and feature_names as arrays ready for scikit-learn.
+Returns X (numpy), y (numpy) and feature_names (list) as arrays ready for scikit-learn.
 """
 
 from pathlib import Path
@@ -25,7 +31,7 @@ from agnn.config import load_config
 # Taken from the three decision documents
 # ──────────────────────────────────────────────────────────────────────
 
-# These are features that are always included. These are always available for the N=79 modelling cohort with no 
+# These are features that are always included. These are always available for the n=79 modelling cohort with no 
 # concerns about missingness.
 COMPACT_LIGHT_FEATURES = [
     "age",
@@ -38,7 +44,7 @@ COMPACT_LIGHT_FEATURES = [
     "CVLT_13", # Recognition of false alarms
     "RPM", # Intelligence
     "smoking_status",
-    "dementia_history_parents",
+    "dementia_history_parents"
 ]
  
 # Blood-panel additions. Available only for the ~76 second_phase = 1 participants with blood data. The reason
@@ -57,8 +63,104 @@ COMPACT_FULL_BLOOD_ADDITIONS = [
     "total_cholesterol",
     "cholesterol_HDL",
     "triglycerides",
-    "HSV_r",
+    "HSV_r"
 ]
+
+# This is for all features (light). It's every non-blood feature that has potential signal. For LASSO and RF
+ALL_LIGHT_FEATURES = [
+    # Demographic and lifestyle
+    "age", 
+    "sex", 
+    "education", 
+    "BMI",
+    "smoking_status", 
+    "coffee_status", 
+    "AUDIT",
+    "dementia_history_parents", 
+    "hypertension", 
+    "diabetes",
+    "thyroid_diseases", 
+    "allergies", 
+    # "learning_deficits",  # Excluded because dataset uses mixed encoding that would need special parsing
+    # and it's not central to project scope.
+    "EHI",
+    # Genetic 
+    "PICALM_G_count",
+    # Psychometric 
+    "BDI", 
+    "SES", 
+    "RPM",
+    "NEO_NEU", 
+    "NEO_EXT", 
+    "NEO_OPE", 
+    "NEO_AGR", 
+    "NEO_CON",
+    # Psychometric: MINI-COPE 
+    "MINI-COPE_1", 
+    "MINI-COPE_2", 
+    "MINI-COPE_3", 
+    "MINI-COPE_4",
+    "MINI-COPE_5", 
+    "MINI-COPE_6", 
+    "MINI-COPE_7", 
+    "MINI-COPE_8",
+    "MINI-COPE_9", 
+    "MINI-COPE_10", 
+    "MINI-COPE_11", 
+    "MINI-COPE_12",
+    "MINI-COPE_13", 
+    "MINI-COPE_14",
+    # Psychometric: CVLT (all 13 subscores and total_learning)
+    "CVLT_1", 
+    "CVLT_2", 
+    "CVLT_3", 
+    "CVLT_4", 
+    "CVLT_5",
+    "CVLT_6", 
+    "CVLT_7", 
+    "CVLT_8", 
+    "CVLT_9",
+    "CVLT_10", 
+    "CVLT_11", 
+    "CVLT_12", 
+    "CVLT_13",
+    "CVLT_total_learning"
+]
+
+# This is for all features (full). It's everything above as well as the full 28 feature blood panel
+ALL_FULL_BLOOD_ADDITIONS = [
+    "leukocytes", 
+    "erythrocytes", 
+    "hemoglobin", 
+    "hematocrit",
+    "MCV", 
+    "MCH", 
+    "MCHC", 
+    "RDW-CV",
+    "platelets", 
+    "PDW", 
+    "MPV", 
+    "P-LCR",
+    "neutrophils", 
+    "lymphocytes", 
+    "monocytes",
+    "eosinophils", 
+    "basophils",
+    "neutrophils_%", 
+    "lymphocytes_%", 
+    "monocytes_%",
+    "eosinophils_%", 
+    "basophils_%",
+    "total_cholesterol", 
+    "cholesterol_HDL",
+    "non-HDL_cholesterol", 
+    "LDL_cholesterol", 
+    "triglycerides",
+    "HSV_r"
+]
+
+# Columns where misisngness is structural(the measurement wasn't taken). These should not be imputed
+NEVER_IMPUTE = set(COMPACT_FULL_BLOOD_ADDITIONS + ALL_FULL_BLOOD_ADDITIONS)
 
 # ──────────────────────────────────────────────────────────────────────
 # Load data
@@ -142,7 +244,7 @@ def build_feature_matrix(df, variant):
     Parameters
     ----------
         - df : DataFrame with derived features already added (see functions above)
-        - variant : 'compact-light' or 'compact-full'
+        - variant : 'compact-light', 'compact-full', 'all-features-light' or 'all-features-full'
  
     Returns
     -------
@@ -152,9 +254,17 @@ def build_feature_matrix(df, variant):
         columns = COMPACT_LIGHT_FEATURES
     elif variant == "compact-full":
         columns = COMPACT_LIGHT_FEATURES + COMPACT_FULL_BLOOD_ADDITIONS
+    elif variant == "all-features-light":
+        columns = ALL_LIGHT_FEATURES
+    elif variant == "all-features-full":
+        columns = ALL_LIGHT_FEATURES + ALL_FULL_BLOOD_ADDITIONS
     else:
         raise ValueError(f"Unknown variant: {variant}")
- 
+    
+    missing = [c for c in columns if c not in df.columns]
+    if missing:
+        raise ValueError(f"Columns not found in data: {missing}")
+  
     return df[columns].copy()
 
 # ──────────────────────────────────────────────────────────────────────
@@ -163,13 +273,19 @@ def build_feature_matrix(df, variant):
 
 def impute_missing(X):
     """
-    Fill missing values with column median for numerical features and mode for categorical features.
+    Fill missing values with column median for numerical features and mode for categorical features,
+    except for columns in NEVER_IMPUTE (blood panel columns)
+
+    The blood panel columns are excluded because missingness reflects participants who likely never had blood
+    drawn, and fabricating biological measurements should be avoided.
 
     First iteration of logistic regression should've been n=79 but had 10 missing values across 3
     columns, which caused loss of 12% of the cohort. Impute as a result.
     """
     X = X.copy()
     for col in X.columns:
+        if col in NEVER_IMPUTE:
+            continue  # Make sure to avoid biology-fabricating imputation
         if X[col].isna().any():
             # Categorical columns (integer encoded with not many unique values) get the mode. Continuous get the median.
             if X[col].nunique() <= 10:
