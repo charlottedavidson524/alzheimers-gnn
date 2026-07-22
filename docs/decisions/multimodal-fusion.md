@@ -77,7 +77,7 @@ The full set of models that will be done.
 
 | Model               | Inputs         | Architecture                     | Purpose                         |
 | ------------------- | -------------- | -------------------------------- | ------------------------------- |
-| Tabular (LR)        | Only tabular   | Linear Regression                | A baseline model but linear     |
+| Tabular (LR)        | Only tabular   | Logistic Regression              | A baseline model but linear     |
 | Tabular (RF)        | Only tabular   | Random Forest                    | A baseline model but non-linear |
 | GNN                 | EEG graph only | GCN                              | Unimodal EEG ceiling            |
 | Late fusion         | Both           | GNN and tabular combined         | Independant modality fusion     |
