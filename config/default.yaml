@@ -4,24 +4,20 @@ seed: 42
 
 # Paths
 paths:
-  data_root: "C:/data/pearl-neuro" # Raw BIDS dataset. Outside the repo.
+  data_root: "C:/data/pearl-neuro" # Raw BIDS dataset. Outside repo.
   interim: "data/interim" # Stores cached preprocessed EEG/fMRI (inside repo, gitignored)
-  processed: "data/processed" # Connectivity matrices, PyG graph objects
-  results: "results" # Figures, saved models, metrics
+  processed: "data/processed" # Connectivity matrices and PyG graph objects
+  results: "results" # Figures, saved models and metrics
 
 # Dataset
 dataset:
   openneuro_id: "ds004796" # The ID on OpenNeuro
   version: "1.1.0"
-  target: "apoe_e4_carrier" # RQ1: carrier vs non-carrier
+  target: "apoe_e4_carrier" # carrier vs non-carrier
   neuroimaging_subset_n: 79
 
-# EEG preprocessing (MNE)
+# EEG frequency bands
 eeg:
-  sfreq_resample: 250 # Downsample (from the recorded 1000 Hz)
-  l_freq: 1.0 # High-pass
-  h_freq: 45.0 # Low-pass (stays below mains noise)
-  notch: 50 # Poland has 50 Hz mains
   bands:
     delta: [1, 4]
     theta: [4, 8]
@@ -29,10 +25,62 @@ eeg:
     beta: [13, 30]
     gamma: [30, 45]
 
-# Graph construction
-graph:
-  connectivity: "coherence" # EEG coherence -> edge weights
-  threshold: 0.3 # Edge sparsification cutoff
+# EEG preprocessing. See ``docs/decisions/eeg_preprocessing for logic
+preprocessing:
+  # Filtering (notch and bandpass)
+  filter:
+    highpass_hz: 1.0
+    lowpass_hz: 45.0
+    notch_hz: 50.0
+    filter_type: "fir"
+
+  # Downsampling
+  resample:
+    target_sfreq: 250
+
+  # Bad channels (LOF detection and spherical spline interpolation)
+  bad_channels:
+    lof_threshold: 1.5
+    max_bad_ratio: 0.20
+
+  # Re-referencing (CAR)
+  reference: "average"
+
+  # ICA (Picard with Extended Infomax settings)
+  ica:
+    method: "picard"
+    fit_params:
+      extended: true
+      ortho: false
+    random_state: 42
+    max_iter: "auto"
+
+  # ICLabel
+  iclabel:
+    reject_threshold: 0.90
+    reject_categories:
+      - "muscle"
+      - "eye blink"
+      - "heart beat"
+      - "line noise"
+      - "channel noise"
+
+  # Condition segment extraction
+  events:
+    eyes_closed_start_marker: "S  4"
+    eyes_closed_end_marker: "S 11"
+
+  # Epoching
+  epoching:
+    duration_s: 4.0
+    overlap: 0.0
+    baseline: null # No baseline correction for resting-state
+
+  # Autoreject
+  autoreject:
+    n_interpolate: [1, 4, 8, 16]
+    consensus: null # Let autoreject determine
+    random_state: 42
 
 # Cross-validation
 cv:

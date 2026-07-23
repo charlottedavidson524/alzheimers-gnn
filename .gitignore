@@ -7,6 +7,15 @@ results/
 *.set
 *.fdt
 
+# EEG output formats (MNE)
+*.fif
+*.fif.gz
+
+# EEG raw formats 
+*.eeg
+*.vhdr
+*.vmrk
+
 # Python
 __pycache__/
 *.py[cod]
