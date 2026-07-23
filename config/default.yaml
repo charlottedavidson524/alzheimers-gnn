@@ -59,7 +59,7 @@ preprocessing:
   iclabel:
     reject_threshold: 0.90
     reject_categories:
-      - "muscle"
+      - "muscle artifact"
       - "eye blink"
       - "heart beat"
       - "line noise"

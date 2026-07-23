@@ -28,3 +28,6 @@ __pycache__/
 
 # OS/editor
 .DS_Store
+
+# Scratch files. Don't want in repo
+scratch_*.py

@@ -10,6 +10,8 @@ Considered FastICA (MNE default) and classic Extended Infoxmax but went with wwh
 
 Artoni, Delorme & Makeig (2018) showed that PCA rank reduction before ICA (even removing only 5% of variance) reduces the number of dipolar components recovered from around 30 to around 10 per subject and drops median IC stability from 90% to 76%. n_components is therefore set to the effective rank of the data, computed per subject via `mne.compute_rank(raw)["eeg"]`. This handles rank reduction from CAR and from interpolated bad channels uniformly and automatically, avoiding both rank deficiency (which produces ghost components) and unnecessary dimensionality reduction.
 
+NOTE AFTER PREPROCESSING SUB-01: `n_components` is set using `numpy.linalg.matrix_rank(raw.get_data())` instead of `mne.compute_rank(rank="info")`. MNE's info-based rank originally remained at 125 after CAR and interpolation, while numpy correctly reported 121. Using info-based rank produces ghost components.
+
 ## How to classify components
 
 ICLabel (Pion-Tonachini et al. 2019) is trained on over 200,000 independent components from more than 6,000 EEG recordings and is benchmarked as outperforming MARA, SASICA, and other IC classifiers. At the same time it is 10 times faster than the previous best classifier. Manual visual inspection of ICA components isnt practical at n=79 when keeping reproducability in mind, and introduces subjectivity that ICLabel removes.
