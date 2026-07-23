@@ -84,3 +84,44 @@ Events:
 | 276.1    | S1            | Block boundary/response-marker |
 | 276.1    | S4 (stimulus) | Eyes closed condition onset    |
 | 637.4    | S11           | End of task and sound effect   |
+
+Interpretations are confirmed by the paper. There are two blocks. Roughly 4 mins of eyes open (Condition A) followed by roughly 6 minutes of eyes closed (Condition B)
+. they are separated by a roughly 11 second gap. the total usable recording is around 10.2 minutes. This is confirmed by the paper's resting state session description. Table 5 of the paper documents event codes:
+
+- S 2 = "eyes open condition start"
+- S 4 = "eyes closed condition start"
+- S 10 = "eyes closed instruction"
+- S 11 = "end of task and sound effect"
+
+The stimulus effects (S 2 and S 4) are things presented to the participant (eyes open/eyes closed instructions). Non-stimulus events (S 1, S 10, S 11) are protocol/recording markers with `trial_type` = NaN. This expected BIDS behaviour rather than missing data. Implications:
+
+- Usable segments are 23.3-264.7s (eyes open/4 mins) and 276.1-637.4s (eyes closed/6 minutes). discard silences before, between and after.
+
+- Need to decide whether to analyse conditions separately, concatenated, or to use eyes closed only.
+
+- Eyes closed condition gives strongest alpha signal (see below) so might be preferred.
+
+Signal quality (raw snippet)
+
+- Saved to `results/eeg-inspection/raw-snippet.png` (first 20s, 16 channels)
+- Clean baseline with periodic muscle artefacts.
+- Two interesting features: a burst of high amplitude, high frequency activity around 8-12s appearing across many channels simultaneously. This is most prominent in temporal channels (F7, FT9, T7, TP9). Its a sign of muscle artefact/EMG. Could be jaw or neck tension (Goncharova et al., 2003). Temporalis muscle sits near these electrodes. Also there are larger deflections in Fp1, particularly near the start of the snippet. Consistent with eye blinks (standard frontal electrode artefact from eyelid movement) (Jung et al., 2000)
+- Preprocessing implications: Need to do artefact handling. There are two options: 1 -> ICA based artefact rejection. 2 -> Epoch level rejection. Could also do a hybrid, this is common practice.
+
+Signal quality (power spectral density):
+
+- Plot is saved in `results/eeg-inspection/psd.png`. Averaged across all channels, 0-60Hz, log scale.
+- Found that there were three features, all as expected for a healthy-resting state EEG. Prominent alpha peak at roughly 8-9Hz. Individual alpha frequency (IAF) sits within normal adult range (7-13Hz). Peak is obvious, participant genuinely reached resting brain state. Sharp 50Hz mains spike (mains line contamination expected for a Polish recording). Clean 1/f fall off between peaks. Power decreases smoothly with frequency -> healthy EEG spectra.
+- Pre-processing implications: 50Hz notch filter probably needed. Bandpass 1-45Hz is likely appropriate. Alpha rhythm is prominent and usable.
+
+So, sub-01 is a viable participant.
+
+Findings that likely generalise beyond sub-01 (run checks on 4 other subjects to verify this):
+
+- There are files available per subject per task (.eeg, .vhdr, .vmrk, \_events.tsv) are in `sub-XX/eeg/`. CapTrak files for 77 of 79 participants.
+- FCz reference electrode. Same hardware for whole cohort.
+- 10-5 channel naming convention and `standard_1005` montage match up.
+- two-block eyes open (4 minutes) and then eyes closed (6 minutes)
+- actiCHamp amplifier, 1000Hz sample rate, 280Hz low-pass online filter, 5-10 kilo-ohms impedence should be the same for all subjects.
+
+Reverify all of thee above for 4 more subjects after the stage 3 downloads. There may be some people with unusual characteristics. Want to check that sub-01 is representtaive.
