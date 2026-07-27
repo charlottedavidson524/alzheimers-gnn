@@ -47,28 +47,35 @@ def _rest_events_tsv(sub: str, data_root: Path) -> Path:
     return data_root/sub/"eeg"/f"{sub}_task-rest_events.tsv"
  
  
-def _eyes_closed_onsets(events_path: Path, start_marker: str, end_marker: str) -> tuple[float, float]:
+def _eyes_closed_onsets(events_path: Path, start_marker: str, end_marker: str, fallback_duration_s: float = 360.0, recording_end_s: float | None = None) -> tuple[float, float]:
     """
     Return (start, end) times of the eyes-closed condition, in seconds.
+
+    Had to add an extra condition due to some end_marker being missing due to truncated events files.
     """
-    # Load events sidecar and sort by onset
     events = pd.read_csv(events_path, sep="\t").sort_values("onset").reset_index(drop=True)
     codes = events["event_type"].astype(str).str.strip()
-    
-    # Find rows containing start/end markers .str.strip() handles BrainVision's whitespace-padded codes (eg "S  4").
+
     start_matches = events[codes == start_marker.strip()]
-    end_matches = events[codes == end_marker.strip()]
- 
-    # Fail fast if either matrker is missing
     if len(start_matches) == 0:
         raise ValueError(f"Eyes-closed start marker {start_marker!r} is missing")
-    if len(end_matches) == 0:
-        raise ValueError(f"Eyes-closed end marker {end_marker!r} is missing")
-    
-    # Take the first occurrance of each marker
-    start = float(start_matches["onset"].iloc[0])
-    end = float(end_matches["onset"].iloc[0])
 
+    start = float(start_matches["onset"].iloc[0])
+
+    end_matches = events[codes == end_marker.strip()]
+    if len(end_matches) > 0:
+        end = float(end_matches["onset"].iloc[0])
+    else:
+        # If S 11 missing then fall back to fixed protocol duration.
+        end = start + fallback_duration_s
+        if recording_end_s is not None and end > recording_end_s:
+            raise ValueError(
+                f"Fallback end ({end:.1f}s) longer than recording length "
+                f"({recording_end_s:.1f}s). Could be a very short recording."
+            )
+
+    if end <= start:
+        raise ValueError(f"Eyes-closed end ({end:.1f}s) is not after start ({start:.1f}s)")
     return start, end
  
 # ──────────────────────────────────────────────────────────────────────
@@ -138,6 +145,10 @@ def preprocess_subject(subject_id: str, config: dict, data_root: Path | str, out
         vhdr = _rest_vhdr(subject_id, data_root)
         if not vhdr.exists():
             raise FileNotFoundError(f"Raw file not found: {vhdr}")
+        
+        events_path = _rest_events_tsv(subject_id, data_root)
+        if not events_path.exists():
+            raise FileNotFoundError(f"Events file not found: {events_path}")
  
         raw = mne.io.read_raw_brainvision(vhdr, preload=True, verbose="ERROR")
  
@@ -221,11 +232,12 @@ def preprocess_subject(subject_id: str, config: dict, data_root: Path | str, out
         status["ica_categories_removed"] = categories_removed
  
         # Extract eyes-closed segment (S 4 -> S 11)
-        events_path = _rest_events_tsv(subject_id, data_root)
-        if not events_path.exists():
-            raise FileNotFoundError(f"Events file not found: {events_path}")
+        #events_path = _rest_events_tsv(subject_id, data_root)
+        #if not events_path.exists():
+            #raise FileNotFoundError(f"Events file not found: {events_path}")
  
-        ec_start, ec_end = _eyes_closed_onsets(events_path, start_marker=cfg["events"]["eyes_closed_start_marker"], end_marker=cfg["events"]["eyes_closed_end_marker"])
+        #ec_start, ec_end = _eyes_closed_onsets(events_path, start_marker=cfg["events"]["eyes_closed_start_marker"], end_marker=cfg["events"]["eyes_closed_end_marker"])
+        ec_start, ec_end = _eyes_closed_onsets(events_path, start_marker=cfg["events"]["eyes_closed_start_marker"], end_marker=cfg["events"]["eyes_closed_end_marker"], fallback_duration_s=280.0, recording_end_s=raw.times[-1])
         raw_ec = raw.copy().crop(tmin=ec_start, tmax=ec_end)
         status["eyes_closed_duration_s"] = float(raw_ec.times[-1])
  

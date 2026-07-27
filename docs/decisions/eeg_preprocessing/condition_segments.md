@@ -21,3 +21,5 @@ Also considered using them both as separate inputs. Would double the sample per 
 The extracted eyes closed segment is roughly 6 minutes (360 seconds) per subject. This is actually more than published AD-EEG-GNN work: Klepl et al. (2023) used their recordings similarly. Dzianok et al. (2025) used 5 minutes on this exact same dataset. Shouldn't worry about data quantity.
 
 Should come back to this decision if the primary GNN model underperforms. Can add eyes open as an auxiliary analysis (follows Jennings et al. 2022's suggestion).
+
+NOTE AFTER PREPROCESSING: Three subjects (sub-19, sub-30, sub-34) had truncated events files where the S 11 marker was missing despite the fact they had full length raw EEG recordings. As a fix the eyes closed end is inferred as S 4 + 360 seconds. This is to match the protocol duration.

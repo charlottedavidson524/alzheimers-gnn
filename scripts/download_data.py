@@ -51,6 +51,9 @@ EEG_EXTS = [".eeg", ".vhdr", ".vmrk"]
 # EEG tasks recorded in PEARL-Neuro.
 EEG_TASKS = ["rest", "msit", "sternberg"]
 
+# BIDS sidecars (different naming pattern from BrainVision files).
+EEG_SIDECARS = ["_events.tsv"]
+
 # ──────────────────────────────────────────────────────────────────────
 # Core download 
 # ──────────────────────────────────────────────────────────────────────
@@ -109,13 +112,35 @@ def files_stage_2() -> list[str]:
 
 
 def files_stage_3() -> list[str]:
-    """Skeleton subjects, all EEG tasks."""
-    return [f"{sub}/eeg/{sub}_task-{task}_eeg{ext}" for sub in SKELETON_SUBJECTS for task in EEG_TASKS for ext in EEG_EXTS]
+    """Skeleton subjects, all EEG tasks, plus events sidecars."""
+    eeg_files = [
+        f"{sub}/eeg/{sub}_task-{task}_eeg{ext}"
+        for sub in SKELETON_SUBJECTS
+        for task in EEG_TASKS
+        for ext in EEG_EXTS
+    ]
+    events_files = [
+        f"{sub}/eeg/{sub}_task-{task}_events.tsv"
+        for sub in SKELETON_SUBJECTS
+        for task in EEG_TASKS
+    ]
+    return eeg_files + events_files
 
 
 def files_stage_4() -> list[str]:
-    """All neuroimaging subjects, all EEG tasks."""
-    return [f"{sub}/eeg/{sub}_task-{task}_eeg{ext}" for sub in FULL_SUBJECTS for task in EEG_TASKS for ext in EEG_EXTS]
+    """All 79 subjects, all EEG tasks, plus events sidecars."""
+    eeg_files = [
+        f"{sub}/eeg/{sub}_task-{task}_eeg{ext}"
+        for sub in FULL_SUBJECTS
+        for task in EEG_TASKS
+        for ext in EEG_EXTS
+    ]
+    events_files = [
+        f"{sub}/eeg/{sub}_task-{task}_events.tsv"
+        for sub in FULL_SUBJECTS
+        for task in EEG_TASKS
+    ]
+    return eeg_files + events_files
 
 
 STAGES = {
