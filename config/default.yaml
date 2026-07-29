@@ -99,14 +99,10 @@ model:
 
 # Connectivity and graph construction
 connectivity:
-  # Frequency bands
   bands:
-    delta: [0.5, 4.0]
-    theta: [4.0, 7.0]
-    alpha1: [7.5, 9.5]
-    alpha2: [10.0, 12.0]
-    beta: [12.0, 30.0]
-    gamma: [30.0, 45.0]
+    delta:   [0.5, 4.0]
+    alpha2:  [10.0, 12.0]
+  edge_threshold_pct: 20.0
 
   # Edge thresholding
   edge_threshold_pct: 20.0

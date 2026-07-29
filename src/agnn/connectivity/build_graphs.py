@@ -93,11 +93,10 @@ def build_subject_graphs(subject_id: str, config: dict, preprocessed_root: Path 
             x = torch.from_numpy(node_powers[epoch_idx]).float()
 
             for band_name in bands:
-                # Symmetrise -> MNE fills only the lower triangle. Upper is zeros. Diagonal is already zeroed in compute_wpli_all_bands, so m + m.T
-                # is safe (no double-counting).
+                # Filter-Hilbert wPLI returns a fully symmetric matrix, so no
+                # need to symmetrise here.
                 m = wpli[band_name][epoch_idx]
-                m_sym = m + m.T
-                edge_index, edge_weight = top_k_threshold(m_sym, k_pct=k_pct)
+                edge_index, edge_weight = top_k_threshold(m, k_pct=k_pct)
                 edges_by_band[band_name].append(edge_index.shape[1])
 
                 # Scalar edge attribute per edge. Unsqueeze to shape (E, 1) so downstream GCN layers can treat it uniformly.

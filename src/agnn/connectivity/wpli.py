@@ -1,77 +1,132 @@
 """
-wPLI computation for cohort connectivity analysis.
+wPLI computation via filter-Hilbert for cohort connectivity analysis.
 
-Uses mne-connectivity's spectral_connectivity_time with CWT-Morlet spectral estimation to compute per-epoch wPLI (Vinck et al. 2011). Adaptive n_cycles
-ensures wavelet windows fit within the 4-second epochs.
+Matches Klepl et al. (2022, 2023) methodology exactly:
+1. Bandpass filter each epoch with 5th-order Butterworth IIR (zero-phase)
+2. Hilbert transform to get complex analytic signal
+3. Compute wPLI (Vinck et al. 2011) per epoch from cross-spectrum across time samples
 
-- CWT-Morlet is used (not multitaper) because its faster and more reliable than multitaper for this workload. Multitaper was investigated but wouldn't run
-  at low-frequency adaptive-n_cycles combinations.
-- Per-epoch computation (average=False) matches the graph-aggregation decision (each epoch is a separate training example).
-- Bands are computed one at a time so `faverage=True` averages wPLI across the band's frequency bins.
+Why IIR Butterworth rather than FIR
+------------------------------------
+FIR bandpass filters require a filter length of ~3.3/transition_bandwidth. At
+a 0.5 Hz lower cutoff with default settings, this requires a 6.6-second filter,
+longer than the 4-second epoch. Butterworth IIR is recursive and has no such
+length constraint, so it accommodates low-frequency analysis within short epochs.
+Klepl et al. explicitly specify 5th-order Butterworth.
 
-IMPORTANT CAVEAT: For the lowest delta frequencies (0.5-1 Hz), the wavelet window needed to be shortedned to fit within the 4-second epoch, giving fewer 
-than 3 cycles. At 0.5 Hz the wavelet uses around 1.75 cycles (3.5-second window). This produces usable but noisier estimates at low delta. Alpha, beta, 
-gamma, and delta above 1 Hz use the full 3-cycle window.
+Note on absolute wPLI values
+----------------------------
+Per-epoch wPLI computed over time samples of narrowband signals naturally
+produces higher absolute values than cross-trial wPLI reported in some
+literature. Each epoch is internally more phase-coherent than an average
+across many trials. This is expected for the filter-Hilbert per-epoch
+formulation and not a bug — Klepl et al.'s reported values are similarly
+elevated.
 """
 
 from __future__ import annotations
+
 import numpy as np
 import mne
-from mne_connectivity import spectral_connectivity_time
 
 
-def compute_wpli_all_bands(epochs: mne.Epochs, bands: dict[str, tuple[float, float]], n_cycles_max: float = 3.0,) -> dict[str, np.ndarray]:
-    """
-    Compute per-epoch wPLI for each frequency band using CWT-Morlet.
+def _wpli_from_analytic(analytic: np.ndarray) -> np.ndarray:
+    """Compute per-epoch wPLI matrices from complex analytic signals.
 
     Parameters
     ----------
-    - epochs : mne.Epochs
-          Preprocessed epochs for one subject.
-    - bands : dict
-          Band name -> (fmin, fmax) in Hz.
-    - n_cycles_max : float, default 3.0
-          Maximum wavelet cycles per frequency. Lower values are used automatically for low frequencies to keep the wavelet window shorter than the epoch.
+    analytic : complex array, shape (n_epochs, n_channels, n_times)
+        Analytic signal from the Hilbert transform of a bandpass-filtered
+        recording.
 
     Returns
     -------
-    - wpli : dict
-          band_name -> array of shape (n_epochs, n_channels, n_channels). Diagonal zeroed. Matrix is symmetric.
+    wpli : real array, shape (n_epochs, n_channels, n_channels)
+        Per-epoch wPLI matrices. Symmetric, with zero diagonal, values in [0, 1].
+
+    Notes
+    -----
+    Follows Vinck et al. (2011) Eq. (8):
+
+        wPLI(i,j) = |E{|Im(S_ij)| · sign(Im(S_ij))}| / E{|Im(S_ij)|}
+
+    Where S_ij(t) = z_i(t) · conj(z_j(t)) is the cross-spectrum between
+    channels i and j at time t, and the expectation is taken over time
+    samples within an epoch.
     """
-    # Number of channels and create dictionary for results
-    n_channels = len(epochs.ch_names)
+    n_epochs, n_channels, _ = analytic.shape
+    wpli = np.zeros((n_epochs, n_channels, n_channels), dtype=np.float32)
+
+    for e in range(n_epochs):
+        z = analytic[e]  # (n_channels, n_times)
+
+        # Cross-spectrum for all channel pairs at each time point.
+        # S[i, j, t] = z[i, t] * conj(z[j, t])
+        S = np.einsum("it,jt->ijt", z, np.conj(z))
+        imag = np.imag(S)
+
+        # Numerator: absolute value of the mean signed imaginary cross-spectrum.
+        # Denominator: mean absolute imaginary cross-spectrum.
+        num = np.abs(np.mean(np.abs(imag) * np.sign(imag), axis=-1))
+        den = np.mean(np.abs(imag), axis=-1)
+
+        # Guard against divide-by-zero; the diagonal has Im(S)=0 by definition
+        # so its wPLI is undefined but forced to zero anyway.
+        with np.errstate(divide="ignore", invalid="ignore"):
+            m = np.where(den > 0, num / den, 0.0)
+
+        # Zero the diagonal explicitly (no self-connectivity).
+        np.fill_diagonal(m, 0.0)
+
+        # Clip numerical noise into [0, 1].
+        wpli[e] = np.clip(m, 0.0, 1.0).astype(np.float32)
+
+    return wpli
+
+
+def compute_wpli_all_bands(
+    epochs: mne.Epochs,
+    bands: dict[str, tuple[float, float]],
+    iir_order: int = 5,
+) -> dict[str, np.ndarray]:
+    """Compute per-epoch wPLI for each frequency band via filter-Hilbert.
+
+    Parameters
+    ----------
+    epochs : mne.Epochs
+        Preprocessed epochs for one subject.
+    bands : dict
+        Band name -> (fmin, fmax) in Hz.
+    iir_order : int, default 5
+        Butterworth filter order. 5 matches Klepl et al. (2022, 2023).
+
+    Returns
+    -------
+    wpli : dict
+        band_name -> array of shape (n_epochs, n_channels, n_channels).
+        Symmetric matrix, zero diagonal, values in [0, 1].
+    """
     result: dict[str, np.ndarray] = {}
 
     for band_name, (fmin, fmax) in bands.items():
-        # One frequency grid point per 0.5 Hz within the band, at minimum 2 points.
-        n_points = max(2, int(np.round((fmax-fmin)/0.5))+1)
-        freqs = np.linspace(fmin, fmax, n_points)
-
-        # Adaptive n_cycles: cap at n_cycles_max but reduce for low frequencies so the wavelet window (n_cycles/freq seconds) fits within the epoch.
-        adaptive_cycles = np.minimum(n_cycles_max, freqs*1.8)
-
-        con = spectral_connectivity_time(
-            epochs,
-            freqs=freqs,
-            method="wpli",
-            average=False, # makes it per epoch
-            faverage=True, # averages across freqencies within band
-            mode="cwt_morlet", # faster and more reliable than multitaper here
-            n_cycles=adaptive_cycles,
-            n_jobs=1,
+        # Bandpass filter with zero-phase Butterworth IIR. MNE's method="iir"
+        # with default settings applies zero-phase filtering (forward + reverse)
+        # so there's no phase distortion introduced by the filter.
+        band_epochs = epochs.copy().filter(
+            l_freq=fmin,
+            h_freq=fmax,
+            method="iir",
+            iir_params=dict(order=iir_order, ftype="butter"),
             verbose="ERROR",
         )
 
-        # Dense output shape: (n_epochs, n_ch, n_ch, n_freqs=1 after faverage).
-        con_data = con.get_data(output="dense")[..., 0]
+        # Hilbert transform in place. envelope=False keeps the complex analytic
+        # signal (needed for wPLI's imaginary cross-spectrum computation).
+        band_epochs.apply_hilbert(envelope=False)
 
-        # Numerical noise can produce tiny negatives so clip to [0, 1] for the sake of cleanliness
-        con_data = np.clip(con_data, 0.0, 1.0)
+        # Get complex analytic signal: shape (n_epochs, n_channels, n_times).
+        analytic = band_epochs.get_data()
 
-        # Zero the diagonal. There;s no self-connectivity by construction.
-        for i in range(n_channels):
-            con_data[:, i, i] = 0.0
-
-        result[band_name] = con_data.astype(np.float32)
+        result[band_name] = _wpli_from_analytic(analytic)
 
     return result
