@@ -78,3 +78,29 @@ The architectuire needs adjusting if:
 - Underfitting is severe (train AUC ~ 0.5): increase hidden dimension to 128 and/or add a third GCN layer.
 - Interpretability of specific edges is needed.Can switch to AGGCN.
 - Additional bands are added.Easy, instantiate more `BandBranch` objects and increase the classifier input dim.
+
+## Loading and Cross-Validation
+
+## Decision
+
+Training samples are structured as pairs. They look like (delta_graph, alpha2_graph, label). Cross-validation uses `StratifiedGroupKFold` with subjects as groups and APOE labels as the stratification target.
+
+Each training sample is a tuple of two graphs from the same (subject, epoch), plus a single shared APOE label. The delta and alpha-2 graphs are paired at load time and go through the pipeline together. This is becayse it matches the two-branch model architecture. The model's forward signature is `model(delta_batch, alpha2_batch)`, which requires the data loader to output aligned pairs.
+
+Cross-validation is done using `StratifiedGroupKFold`. Splits are made once at the start of training and reused across all folds. This is the configuration:
+
+- Groups: subject IDs. No subject can appear in both train and test for any fold. TYhis is enforced by the splitter and verified explicitly at fold start using the `verify_no_subject_leakage` function.
+- Stratification: binary APOE labels. Each fold has similar carrier/non-carrier proportions. This is to avoid pathological folds (e.g. all-carrier test set).
+- 5 folds, shuffle=True, seed=42. This is standard for reproducible k-fold.
+
+The reasoing for this is that Brookshire et al. (2024) showed that segment-level splitting on Alzheimer's EEG classifiers inflates test-set accuracy from around 50%/chance to 99.8%. Subject-level splitting is the main defence against this leakage. Stratification is a secondary requirement. It ensures meaningful metrics per fold given the mild class imbalance (1.5:1 carriers:non-carriers).
+
+For batching there is a custom collation function. `collate_pairs` produces two aligned `torch_geometric.data.Batch` objects plus a label tensor. The i'th delta graph in `delta_batch` corresponds to the i'th alpha-2 graph in `alpha2_batch`. This is because the standard PyG `DataLoader` batches Data objects individually. There's no built-in way to batch pairs of Data that I'm aware of.
+
+I have included defensive leakage checks. `verify_no_subject_leakage` is called at the start of each fold to clearly verify no subject overlaps between train and test indices. This isn't necessarily needed given the `StratifiedGroupKFold` splitter's guarantees, but I'm hoping it can be defensive against silent bugs (splitter misuse, index manipulation errors, upstream refactors).
+
+Will adjust the data loading approach if:
+
+- Class imbalance shifts substantially (e.g. beyond 3:1). Might then consider oversampling the minority class
+- Memory becomes a bottleneck. There is currently roughly 13,500 pairs x 2 graphs held in memory (~1-2 GB). Might need on-demand loading if scaled up substantially.
+- Sample-level augmentation is introduced. Would need to include per-batch augmentation logic in the collate function.
