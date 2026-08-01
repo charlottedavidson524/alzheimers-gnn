@@ -109,10 +109,12 @@ def evaluate(
     y_prob = np.concatenate(all_probs)
     y_true = np.concatenate(all_labels)
 
-    # ROC-AUC requires both classes present in the labels; StratifiedGroupKFold
-    # guarantees this per fold. If a caller passes a degenerate loader,
-    # roc_auc_score will raise a ValueError.
-    auc = roc_auc_score(y_true, y_prob)
+    # roc_auc_score requires both classes present. StratifiedGroupKFold
+    # guarantees this in normal use, but defensive against edge cases.
+    if len(np.unique(y_true)) < 2:
+        auc = float("nan")
+    else:
+        auc = roc_auc_score(y_true, y_prob)
 
     return {
         "loss": total_loss / n_samples,
@@ -206,8 +208,8 @@ def train_fold(
                 f"val_auc={val_metrics['auc']:.4f}"
             )
 
-        # Update best state if this epoch improved validation AUC.
-        if val_metrics["auc"] > best_auc:
+        # Treat NaN AUC as no improvement (defensive against single-class folds).
+        if not np.isnan(val_metrics["auc"]) and val_metrics["auc"] > best_auc:
             best_auc = val_metrics["auc"]
             best_epoch = epoch
             # Clone to CPU so future model updates don't overwrite the saved state.
