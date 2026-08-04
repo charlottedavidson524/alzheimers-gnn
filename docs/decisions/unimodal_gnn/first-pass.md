@@ -81,8 +81,6 @@ The architectuire needs adjusting if:
 
 ## Loading and Cross-Validation
 
-## Decision
-
 Training samples are structured as pairs. They look like (delta_graph, alpha2_graph, label). Cross-validation uses `StratifiedGroupKFold` with subjects as groups and APOE labels as the stratification target.
 
 Each training sample is a tuple of two graphs from the same (subject, epoch), plus a single shared APOE label. The delta and alpha-2 graphs are paired at load time and go through the pipeline together. This is becayse it matches the two-branch model architecture. The model's forward signature is `model(delta_batch, alpha2_batch)`, which requires the data loader to output aligned pairs.
@@ -104,3 +102,21 @@ Will adjust the data loading approach if:
 - Class imbalance shifts substantially (e.g. beyond 3:1). Might then consider oversampling the minority class
 - Memory becomes a bottleneck. There is currently roughly 13,500 pairs x 2 graphs held in memory (~1-2 GB). Might need on-demand loading if scaled up substantially.
 - Sample-level augmentation is introduced. Would need to include per-batch augmentation logic in the collate function.
+
+## Training
+
+Can find the training module under `src/agnn/gnn/train.py`. This file provides reusable functions for training a single fold of the 2 branch GNN. This is done to separate the traininbg mechanics (loop, loss, optimiser, early stopping and checkpointing) from the driver logic like cross-validation, cohort iteration and results aggregation so they can both be tested and modified independently. This is good for testability and reusability. There are four functions that each have their own responsibility:
+
+- `set_seed(seed)` -> Call this at the start of each training run and per fold. This makes sure that cross validation results can be compared across runs and hyperparameter configurations.
+
+- `train_one_epoch(model, train_loader, optimizer, criterion, device)` -> this runs one epoch of forward-backward-step over the training loader. It returns the average training loss weighted by btach size. It's isolated from the train_fold for testability and reusability purposes.
+
+- `evaluate(model, loader, criterion, device)` -> This runs the model in evaluation mode over a data loader. Returns a dictionary with average loss, ROC-AUC and per sample predictions.
+
+- `train_fold(model, train_loader, val_loader, config, device, checkpoint_path, verbose)` ->this is the main entry point and trains one fold to converghence with class weighted cross entropy loss (handles 1.5:1 class imbalance), adam optimizer with weight decay, early stopping on validation AUC and model checkpointing to save state of best AUC model to disk. This returns a dictionary with various info and performance metrics.
+
+This all separates the mechanics from the experiments which are done in Google Colab to use T4 GPU. These colab experiments will be saved to a folder called `notebooks`.
+
+## Results
+
+See the file under `notebooks/alzheimers-gnn.ipynb` which contains a markdown cell at the bottom describing the results of the first GNN. Any hyperparameter tuning or further attempts at improvement of the GNN will also be recorded in notebooks under this folder.
