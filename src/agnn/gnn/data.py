@@ -89,6 +89,46 @@ def pair_by_epoch(graphs: Iterable[Data]) -> list[GraphPair]:
 
     return pairs
 
+def pair_by_subject(graphs: Iterable[Data]) -> list[GraphPair]:
+    """Group delta and alpha-2 graphs by subject into training pairs.
+
+    Used with subject-level aggregated graphs where each subject contributes
+    exactly one delta graph and one alpha-2 graph. Contrasts with
+    pair_by_epoch which groups by (subject, epoch).
+
+    Parameters
+    ----------
+    graphs : list of Data
+        Flat list of Data objects with metadata subject_id, band, y.
+        Expects exactly 2 graphs per subject (one per band).
+
+    Returns
+    -------
+    pairs : list of (Data, Data, int)
+    """
+    # Group graphs by subject; each subject should have both bands.
+    by_subject: dict[str, dict[str, Data]] = defaultdict(dict)
+    for g in graphs:
+        by_subject[g.subject_id][g.band] = g
+
+    pairs: list[GraphPair] = []
+    for subject_id, band_graphs in by_subject.items():
+        if "delta" not in band_graphs or "alpha2" not in band_graphs:
+            raise ValueError(
+                f"Subject {subject_id} is missing one or both bands. "
+                f"Found: {list(band_graphs.keys())}"
+            )
+
+        delta = band_graphs["delta"]
+        alpha2 = band_graphs["alpha2"]
+
+        if not hasattr(delta, "y"):
+            raise ValueError(f"Graph {subject_id} has no y (APOE label).")
+        label = int(delta.y.item())
+        pairs.append((delta, alpha2, label))
+
+    return pairs
+
 
 class GraphPairDataset(Dataset):
     """
