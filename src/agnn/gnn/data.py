@@ -90,40 +90,43 @@ def pair_by_epoch(graphs: Iterable[Data]) -> list[GraphPair]:
     return pairs
 
 def pair_by_subject(graphs: Iterable[Data]) -> list[GraphPair]:
-    """Group delta and alpha-2 graphs by subject into training pairs.
+    """
+    This function groups delta and alpha-2 graphs by subject into training pairs.
 
-    Used with subject-level aggregated graphs where each subject contributes
-    exactly one delta graph and one alpha-2 graph. Contrasts with
-    pair_by_epoch which groups by (subject, epoch).
+    It is used with subject level aggregated graphs where each subject contributes exactly one delta graph and one alpha-2 
+    graph. This is in contrast with pair_by_epoch which groups by (subject, epoch).
 
     Parameters
     ----------
-    graphs : list of Data
-        Flat list of Data objects with metadata subject_id, band, y.
-        Expects exactly 2 graphs per subject (one per band).
+    - graphs: list of Data
+          Flat list of Data objects with metadata subject_id, band, y. Expects exactly 2 graphs per subject (one per band)
 
     Returns
     -------
-    pairs : list of (Data, Data, int)
+    - pairs: list of (Data, Data, int)
     """
-    # Group graphs by subject; each subject should have both bands.
+    # Group graphs by subject. Each subject should have both bands
     by_subject: dict[str, dict[str, Data]] = defaultdict(dict)
     for g in graphs:
         by_subject[g.subject_id][g.band] = g
 
+    # Accumulate finsihed pairs into this list
     pairs: list[GraphPair] = []
+
+    # Walk through each subject and assemble a (delta, alpha-2, label) tuple
     for subject_id, band_graphs in by_subject.items():
         if "delta" not in band_graphs or "alpha2" not in band_graphs:
-            raise ValueError(
-                f"Subject {subject_id} is missing one or both bands. "
-                f"Found: {list(band_graphs.keys())}"
-            )
+            raise ValueError(f"Subject {subject_id} is missing one or both bands. Found: {list(band_graphs.keys())}")
 
+        # Pull out both band graphs for this particular subject
         delta = band_graphs["delta"]
         alpha2 = band_graphs["alpha2"]
 
+        # Both graphs of a pair should have the same subject-level label. Raise a ValueError if they don't.
         if not hasattr(delta, "y"):
-            raise ValueError(f"Graph {subject_id} has no y (APOE label).")
+            raise ValueError(f"Graph {subject_id} has no y (APOE label)")
+
+        # Extract the integer label and append the completed pair
         label = int(delta.y.item())
         pairs.append((delta, alpha2, label))
 
