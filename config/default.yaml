@@ -8,6 +8,7 @@ paths:
   interim: "data/interim" # Stores cached preprocessed EEG/fMRI (inside repo, gitignored)
   processed: "data/processed" # Connectivity matrices and PyG graph objects
   results: "results" # Figures, saved models and metrics
+  project_root: "C:/dev/alzheimers-gnn" # Adding a project root for the fusion code
 
 # Dataset
 dataset:
