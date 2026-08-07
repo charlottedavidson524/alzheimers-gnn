@@ -1,5 +1,6 @@
-# Data (never commit)
+# Data (never commit, except shared splits used by both VSCode and Colab)
 data/
+!data/shared_cv_splits.json
 results/
 *.nii
 *.nii.gz
