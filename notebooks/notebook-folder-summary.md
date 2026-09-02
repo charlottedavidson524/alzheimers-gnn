@@ -8,3 +8,4 @@ These are as follows:
 - `notebooks/alzheimers_gnn_subject_level.ipynb`: notebook containing GNN after subject level aggregation
 - `notebooks/alzheimers_gnn_subject_level_tuning.ipynb`: notebook containing hyperparameter tuning for GNN after subject level aggregation
 - `notebooks/alzheimers_gnn_subject_level_BEST.ipynb`: Best outcome of hyperparameter tuning on GNN after subject level aggregation
+- `notebooks/alzheimers-gnn-for-fusion.ipynb`: Retraining the GNN on the intersection of subjects shared with the tabular models for purposes of fusion.
